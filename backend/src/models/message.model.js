@@ -16,7 +16,34 @@ const messageSchema = mongoose.Schema({
     },
     image:{
         type: String,
-    }
+    },
+    isEdited: {
+        type: Boolean,
+        default: false
+    },
+    editHistory: [{
+        text: String,
+        editedAt: Date
+    }],
+    replyTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Message",
+        default: null
+    },
+    readBy: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        },
+        readAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },
 }, {timestamps: true});
 
 const Message = mongoose.model("Message", messageSchema);

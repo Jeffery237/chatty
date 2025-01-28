@@ -1,8 +1,9 @@
+// components/ChatContainer.jsx
 import { useChatStore } from "../store/useChatStore";
 import { useEffect, useRef } from "react";
-
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
+import MessageContent from "./MessageContent";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
@@ -15,13 +16,13 @@ const ChatContainer = () => {
     selectedUser,
     subscribeToMessages,
     unsubscribeFromMessages,
+    markMessageAsRead,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
 
   useEffect(() => {
     getMessages(selectedUser._id);
-
     subscribeToMessages();
 
     return () => unsubscribeFromMessages();
@@ -32,6 +33,18 @@ const ChatContainer = () => {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Mark messages as read when they appear in view
+  useEffect(() => {
+    if (messages.length > 0) {
+      messages.forEach(message => {
+        if (message.senderId === selectedUser._id && 
+            !message.readBy?.some(read => read.userId === authUser._id)) {
+          markMessageAsRead(message._id);
+        }
+      });
+    }
+  }, [messages, selectedUser._id, authUser._id, markMessageAsRead]);
 
   if (isMessagesLoading) {
     return (
@@ -54,7 +67,7 @@ const ChatContainer = () => {
             className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
             ref={messageEndRef}
           >
-            <div className=" chat-image avatar">
+            <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
                   src={
@@ -71,16 +84,15 @@ const ChatContainer = () => {
                 {formatMessageTime(message.createdAt)}
               </time>
             </div>
-            <div className="chat-bubble flex flex-col">
-              {message.image && (
-                <img
-                  src={message.image}
-                  alt="Attachment"
-                  className="sm:max-w-[200px] rounded-md mb-2"
-                />
-              )}
-              {message.text && <p>{message.text}</p>}
-            </div>
+            <MessageContent message={message} />
+            {/* Read receipt indicator */}
+            {message.senderId === authUser._id && (
+              <div className="text-xs text-base-content/50 mt-1">
+                {message.readBy?.some(read => read.userId === selectedUser._id)
+                  ? "Seen"
+                  : "Delivered"}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -89,4 +101,5 @@ const ChatContainer = () => {
     </div>
   );
 };
+
 export default ChatContainer;
